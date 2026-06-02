@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Richard Feynman - Digital Twin</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- FontAwesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- MathJax for quantum formulas and LaTeX equations -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <!-- Interactive Canvas for Quantum Wave Animation -->
+    <canvas id="quantumCanvas"></canvas>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation & Control Panel -->
+        <aside class="sidebar glass">
+            <div class="profile-section">
+                <div class="avatar-container">
+                    <img src="/static/images/feynman_avatar.png" alt="Richard Feynman Avatar" class="feynman-avatar">
+                    <span class="status-dot"></span>
+                </div>
+                <h1 class="feynman-name">Dr. Richard Feynman</h1>
+                <p class="feynman-title">The Great Explainer</p>
+                <div class="persona-tag">Digital Twin (Gemini 2.5)</div>
+            </div>
+
+            <div class="sidebar-menu">
+                <!-- Action to start a new isolated topic -->
+                <button id="newTopicBtn" class="control-btn new-topic-btn">
+                    <i class="fa-solid fa-plus"></i> New Topic
+                </button>
+
+                <!-- Dialogue Topics List Container -->
+                <div class="menu-section">
+                    <h3 class="menu-title"><i class="fa-solid fa-comments text-cyan"></i> Dialogue Topics</h3>
+                    <div class="topics-container">
+                        <div class="topics-list" id="topicsList">
+                            <!-- Dynamic Topic Cards injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-section">
+                    <h3 class="menu-title">Lectures & Prompts</h3>
+                    <div class="quick-prompts">
+                        <button class="prompt-btn" data-prompt="Explain wave-particle duality using real-world analogies.">
+                            <i class="fa-solid fa-atom"></i> Wave-Particle Analogy
+                        </button>
+                        <button class="prompt-btn" data-prompt="How did you crack safes at Los Alamos during the Manhattan Project?">
+                            <i class="fa-solid fa-key"></i> Manhattan Project Safes
+                        </button>
+                        <button class="prompt-btn" data-prompt="Why do you think nature is so beautiful and full of hidden tricks?">
+                            <i class="fa-solid fa-earth-americas"></i> Beauty of Nature
+                        </button>
+                        <button class="prompt-btn" data-prompt="Explain to me how a computer works from first principles.">
+                            <i class="fa-solid fa-microchip"></i> First Principle Computers
+                        </button>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="version-label">v1.1.0 • Isolated SQL Memory</div>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+            <header class="chat-header glass">
+                <div class="header-info">
+                    <h2 class="header-title">Quantum Lecture Hall</h2>
+                    <p class="header-subtitle">Direct peer-to-peer exploration with Dr. Feynman</p>
+                </div>
+                <div class="header-controls">
+                    <div class="status-pill">
+                        <span class="pulse-dot"></span>
+                        <span id="sessionLabel">Session: Default</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="messages-container" id="messagesContainer">
+                <!-- Welcome Message (Rendered on load) -->
+                <div class="message feynman-message slide-up">
+                    <div class="message-avatar">
+                        <img src="/static/images/feynman_avatar.png" alt="Feynman Avatar">
+                    </div>
+                    <div class="message-content glass">
+                        <div class="message-bubble-header">Dr. Richard Feynman</div>
+                        <p>Hello there! I'm Richard Feynman, and I find nature to be the most exciting, beautiful, and utterly bizarre thing in the universe.</p>
+                        <p>You can ask me about physics, electrical engineering, AI architectures, my safe-cracking adventures, or why the color of the sunset is a beautiful trick of nature. Treat me as a peer—let's figure it out together!</p>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="chat-footer glass">
+                <form id="chatForm" class="input-form">
+                    <textarea 
+                        id="userInput" 
+                        placeholder="Type a physics puzzle, a question, or say hi..." 
+                        rows="1" 
+                        required
+                    ></textarea>
+                    <button type="submit" id="sendBtn" class="send-btn">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Script loading -->
+    <script src="/static/script.js"></script>
+</body>
+</html>

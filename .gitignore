@@ -1,0 +1,30 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment configuration
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Local Databases and Vector Stores
+feynman_memory.db
+feynman_twin.db
+feynman_twin_db/
+chroma_db/
+*.db
+
+# Temporary & Office Files
+~$*
+*.log
+scratch_run_stdout.log
+scratch_run_stderr.log
