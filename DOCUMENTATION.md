@@ -18,8 +18,8 @@ The application is designed to be lightweight, zero-dependency on the frontend, 
     *   *Icons:* FontAwesome v6.
     *   *Math Typesetting:* MathJax v3 CDN with dynamic typeset triggers.
 *   **Backend Server:** FastAPI (Python 3.11/3.12) running under Uvicorn.
-*   **AI & RAG Pipeline:** LangChain (combining classic retrieval chains with community database integrations) and Google Gemini API (`gemini-2.5-flash` LLM, `text-embedding-004` embedding model).
-*   **Database & Persistence:** SQLite for local stateful dialogue memory and Chroma DB as the dense vector index.
+*   **AI & RAG Pipeline:** LangChain (combining retrieval chains with SQL database persistence) and Google Gemini API (`gemini-2.5-flash` LLM, `text-embedding-004` embedding model).
+*   **Database & Persistence:** SQLite for stateful dialogue memory and Chroma DB as the dense vector index.
 
 ---
 
@@ -32,9 +32,9 @@ graph TD
     Server -->|Retrieval Query| Hybrid[Hybrid Ensemble Retriever]
     Hybrid -->|70% Weight Dense| Chroma[Chroma DB Vectorstore]
     Hybrid -->|30% Weight Sparse| BM25[BM25 Retriever]
-    Chroma -->|Dense Excerpts| RRF[Reciprocal Rank Fusion]
-    BM25 -->|Sparse Excerpts| RRF
-    RRF -->|Ranked Excerpts| LLM[Gemini 2.5 LLM Chain]
+    Chroma -->|Dense Chunks| RRF[Reciprocal Rank Fusion]
+    BM25 -->|Sparse Chunks| RRF
+    RRF -->|Ranked Chunks| LLM[Gemini 2.5 LLM Chain]
     Server -->|Persist Turn| SQLite[(SQLite message_store)]
     LLM -->|Feynman Response| Server
     Server -->|JSON Answer| UI
@@ -49,14 +49,14 @@ graph TD
 
 ### A. RAG Hybrid Retrieval Strategy
 To deliver grounding in Feynman's actual publications, lectures, and transcripts, we implemented a hybrid RAG retrieval pipeline:
-1.  **Dense Retrieval (70%):** Chroma vector store queries are processed using Google Generative AI embeddings (`text-embedding-004`). This captures semantic meanings, synonyms, and conceptual relationships.
+1.  **Dense Retrieval (70%):** Chroma vector store queries are processed using Google embeddings (`text-embedding-004`). This captures semantic meanings, synonyms, and conceptual relationships.
 2.  **Sparse Retrieval (30%):** `BM25Retriever` performs keyword frequency matching. This ensures that exact mathematical equations, physics symbols, proper names, and literal terms are retrieved accurately.
 3.  **Fusion:** The retrievers are fused using LangChain's `EnsembleRetriever` which balances semantic mapping and strict term matching. This mitigates hallucination and ensures responses are deeply grounded in real lecture transcripts.
 
 ### B. Local NLP Memory Extractor
 Instead of invoking the LLM to summarize or classify user memories (which incurs token fees, latency, and rate limits), we implemented `MemoryExtractor` inside `memory_extractor.py`:
 *   **Heuristics Matcher:** Matches text against pre-defined regexes covering core Feynman topics (e.g. QED, nanotech, safecracking).
-*   **Named Entity Discoverer:** Dynamically extracts multi-word capitalized phrases (excluding common sentence starters) to harvest organic concepts like "Dirac Equation" or "Schrödinger."
+*   **Named Entity Discoverer:** Dynamically extracts multi-word capitalized phrases (excluding common sentence starters) to harvest proper noun concepts like "Los Alamos" or "Dirac Equation".
 *   **Linking:** Connects concepts discussed in the same conversational exchange to draw semantic threads.
 *   **Milestones:** Traces the first time a concept is introduced to build an educational timeline of their study path.
 
@@ -72,7 +72,7 @@ To provide a premium visualization of long-term memory:
 ### D. MathJax LaTeX Typesetting
 To present equations in high academic quality:
 *   Integrated MathJax v3, allowing text formulas like `$E = mc^2$` or display systems like `$$\psi(x,t)$$` to be parsed.
-*   Configured an post-append promise chain in `script.js`: `MathJax.typesetPromise([msgDiv])`. Whenever a new message bubble lands, it specifically compiles only that div, preserving rendering speed and avoiding full-page re-typesets.
+*   Configured a post-append promise chain in `script.js`: `MathJax.typesetPromise([msgDiv])`. Whenever a new message bubble lands, it specifically compiles only that div, preserving rendering speed and avoiding full-page re-typesets.
 
 ### E. Incognito Browser Protection
 Accessing `localStorage` throws a fatal `SecurityError` in incognito tabs or iframe contexts on modern browsers:
@@ -81,9 +81,42 @@ Accessing `localStorage` throws a fatal `SecurityError` in incognito tabs or ifr
 
 ---
 
-## 5. Directory Mapping & Repository Policies
+## 5. Step-by-Step Prompt Data Flow Example
 
-*   **`static/`**: Clean separation of frontend scripts. Contains `index.html` (structure), `script.js` (UI logic, canvas engines, animations), and `style.css` (retro-futuristic styling tokens).
+To illustrate the operations of the digital twin, here is the detailed sequence showing how a prompt (e.g., **"What is a photon?"**) propagates through the stack:
+
+1.  **User Input Event:** 
+    *   The user types "What is a photon?" and hits Enter.
+    *   JavaScript intercepts the form `submit` event, blocks browser refresh, appends the user chat bubble to `#messagesContainer`, resets the textarea heights, and appends the typing indicator animation to the screen.
+2.  **API POST Dispatch:**
+    *   An asynchronous HTTP POST fetch request `/api/chat` is dispatched with payload:
+        ```json
+        {
+            "message": "What is a photon?",
+            "session_id": "feynman_session_hm2iqierz"
+        }
+        ```
+3.  **FastAPI Backend Interception:**
+    *   FastAPI intercepts the request at `/api/chat` and calls the `feynman_twin.invoke(...)` wrapper with the matching session ID.
+4.  **Dual Retrieval Pathways:**
+    *   *Dense Retrieval:* Prompt is embedded (`text-embedding-004`) and Chroma DB returns the top 6 semantically related vector text blocks.
+    *   *Sparse Retrieval:* BM25 Retrievier tokenizes the prompt and fetches the top 6 document chunks matching exact keyword frequencies.
+5.  **Ensemble Fusion & LLM Inference:**
+    *   `EnsembleRetriever` runs Reciprocal Rank Fusion (weights: 70% dense, 30% sparse) to compile grounded context.
+    *   SQLite queries the dialogue memory history for `feynman_session_hm2iqierz`.
+    *   The compiled prompt payload (System Prompt + Chat History + RAG Context + User Prompt) is sent to `gemini-2.5-flash` for synthesis.
+6.  **Persistence Layer Write:**
+    *   The new user prompt and LLM answer are saved as a stateful exchange in SQLite `message_store`.
+7.  **Client Response & MD Compilation:**
+    *   FastAPI returns the response. JavaScript hides the typing indicator, parses markdown elements, and appends Feynman's response bubble.
+8.  **MathJax Typeset Trigger:**
+    *   JavaScript triggers `MathJax.typesetPromise([msgDiv])` to compile inline LaTeX (`$E = hf$`) or block LaTeX into formatted formulas.
+
+---
+
+## 6. Directory Mapping & Repository Policies
+
+*   **`static/`**: Clean separation of frontend scripts. Contains `index.html` (structure), `script.js` (UI logic, canvas engines, animations), and `style.css` (styling variables).
 *   **`feynman_memory.db`**: Local SQLite database storing conversational session history.
 *   **`feynman_twin_db/`**: Local cache directories hosting vector embeddings database.
 *   **`.gitignore`**: Strictly ignores local binaries, DB caches, logs, credentials (`.env`), and python environments (`.venv/`) to maintain repository hygiene.
