@@ -789,3 +789,350 @@ body {
     opacity: 1 !important;
     background: rgba(239, 68, 68, 0.1);
 }
+
+/* --- Memory Matrix Sidebar Trigger --- */
+.memory-btn {
+    border: 1px dashed var(--primary) !important;
+    background: linear-gradient(135deg, rgba(255, 183, 3, 0.05) 0%, rgba(33, 158, 188, 0.05) 100%) !important;
+    margin-bottom: 0.75rem;
+}
+
+.memory-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 183, 3, 0.15) 0%, rgba(33, 158, 188, 0.15) 100%) !important;
+    border-style: solid !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 4px 20px rgba(255, 183, 3, 0.15) !important;
+    color: white !important;
+}
+
+.memory-btn i {
+    color: var(--primary);
+    transition: var(--transition-smooth);
+}
+
+.memory-btn:hover i {
+    transform: scale(1.1) rotate(10deg);
+}
+
+/* --- Modal Overlay Layout --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(2, 48, 71, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none; /* Controlled via JS */
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 1200px;
+    height: 90vh;
+    max-height: 800px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border-glass);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.modal-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modal-header-title i {
+    font-size: 1.5rem;
+    color: var(--details);
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.modal-header-title h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--text-main) 30%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.close-modal-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close-modal-btn:hover {
+    color: var(--primary);
+    background: rgba(255, 183, 3, 0.1);
+    transform: rotate(90deg);
+}
+
+/* --- Modal Body Panel Splits --- */
+.modal-body {
+    flex-grow: 1;
+    display: flex;
+    overflow: hidden;
+    height: calc(100% - 60px);
+}
+
+/* Left Panel: Physics Canvas */
+.canvas-panel {
+    flex: 7;
+    height: 100%;
+    position: relative;
+    border-right: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.canvas-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+#memoryCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+}
+
+#memoryCanvas:active {
+    cursor: grabbing;
+}
+
+.canvas-instructions {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(2, 48, 71, 0.85);
+    border: 1px solid var(--border-glass);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    white-space: nowrap;
+}
+
+.canvas-instructions i {
+    color: var(--primary);
+}
+
+/* Right Panel: Side Details */
+.details-panel {
+    flex: 3;
+    height: 100%;
+    background: rgba(2, 48, 71, 0.3) !important;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    gap: 1.5rem;
+    overflow-y: auto;
+}
+
+.details-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.detail-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.detail-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(142, 202, 230, 0.1);
+}
+
+/* Recall Chamber Elements */
+.concept-detail-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: 100px;
+}
+
+.placeholder-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 1.5rem 0;
+    line-height: 1.4;
+}
+
+.recall-bubble {
+    padding: 0.85rem 1rem;
+    background: rgba(33, 158, 188, 0.08);
+    border: 1px solid rgba(33, 158, 188, 0.25);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    animation: fadeIn 0.35s ease-out;
+}
+
+.recall-bubble.human {
+    background: rgba(255, 183, 3, 0.04);
+    border-color: rgba(255, 183, 3, 0.2);
+}
+
+.recall-sender {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.35rem;
+    color: var(--details);
+}
+
+.recall-bubble.human .recall-sender {
+    color: var(--primary);
+}
+
+.recall-text {
+    color: #e5e7eb;
+}
+
+/* Milestones Timeline */
+.timeline-container {
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.timeline-container::-webkit-scrollbar {
+    width: 3px;
+}
+
+.milestones-timeline {
+    position: relative;
+    padding-left: 1.25rem;
+    border-left: 1px solid rgba(33, 158, 188, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-top: 0.5rem;
+}
+
+.milestone-item {
+    position: relative;
+    font-size: 0.75rem;
+    animation: fadeIn 0.35s ease-out;
+}
+
+.milestone-dot {
+    position: absolute;
+    left: calc(-1.25rem - 4.5px);
+    top: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--details);
+    border: 2px solid var(--bg-dark);
+    box-shadow: 0 0 6px var(--secondary-glow);
+}
+
+.milestone-item:first-child .milestone-dot {
+    background-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.milestone-time {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.15rem;
+}
+
+.milestone-title {
+    font-weight: 700;
+    color: var(--details);
+    margin-bottom: 0.25rem;
+}
+
+.milestone-desc {
+    color: rgba(229, 231, 235, 0.8);
+    line-height: 1.35;
+}
+
+/* Keyframe animations */
+@keyframes pulseGlow {
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(142, 202, 230, 0.4)); }
+    50% { filter: drop-shadow(0 0 8px rgba(142, 202, 230, 0.8)); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Responsive Layout for Modal --- */
+@media (max-width: 900px) {
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        height: 95vh;
+        max-height: none;
+    }
+    
+    .modal-body {
+        flex-direction: column;
+    }
+    
+    .canvas-panel {
+        flex: 5;
+        border-right: none;
+        border-bottom: 1px solid var(--border-glass);
+    }
+    
+    .details-panel {
+        flex: 5;
+        padding: 1rem;
+    }
+}

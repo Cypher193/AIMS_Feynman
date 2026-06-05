@@ -50,6 +50,11 @@
                     <i class="fa-solid fa-plus"></i> New Topic
                 </button>
 
+                <!-- Action to open memory visualization -->
+                <button id="openMemoryBtn" class="control-btn memory-btn">
+                    <i class="fa-solid fa-circle-nodes"></i> Memory Matrix
+                </button>
+
                 <!-- Dialogue Topics List Container -->
                 <div class="menu-section">
                     <h3 class="menu-title"><i class="fa-solid fa-comments text-cyan"></i> Dialogue Topics</h3>
@@ -130,6 +135,54 @@
                 </form>
             </footer>
         </main>
+    </div>
+
+    <!-- Memory Matrix Modal -->
+    <div id="memoryModal" class="modal-overlay">
+        <div class="modal-content glass slide-up">
+            <header class="modal-header">
+                <div class="modal-header-title">
+                    <i class="fa-solid fa-circle-nodes text-cyan"></i>
+                    <h2>Quantum Memory Matrix</h2>
+                </div>
+                <button id="closeMemoryBtn" class="close-modal-btn" title="Close Matrix">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </header>
+            
+            <div class="modal-body">
+                <!-- Left panel: Canvas for node network -->
+                <div class="canvas-panel">
+                    <div class="canvas-container">
+                        <canvas id="memoryCanvas"></canvas>
+                        <div class="canvas-instructions">
+                            <i class="fa-solid fa-hand-pointer"></i> Drag nodes to reorganize • Click a node to recall dialogue
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right panel: Details -->
+                <div class="details-panel glass">
+                    <!-- Concept Detail Snippets (The Recall Chamber) -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title"><i class="fa-solid fa-brain text-amber"></i> Recall Chamber</h3>
+                        <div id="conceptDetailContainer" class="concept-detail-container">
+                            <div class="placeholder-text">Click a concept node in the network to inspect memory snippets and recall the dialogue.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Milestones Timeline -->
+                    <div class="detail-section">
+                        <h3 class="detail-section-title"><i class="fa-solid fa-timeline text-cyan"></i> Dialogue Milestones</h3>
+                        <div class="timeline-container">
+                            <div id="milestonesTimeline" class="milestones-timeline">
+                                <div class="placeholder-text">Start discussing topics to map milestones.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Script loading -->

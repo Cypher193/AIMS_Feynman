@@ -82,6 +82,16 @@ async def get_history_endpoint(session_id: str):
         print(f"Error fetching history: {e}")
         raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}")
 
+@web_app.get("/api/memory-matrix/{session_id}")
+async def get_memory_matrix_endpoint(session_id: str):
+    try:
+        from memory_extractor import MemoryExtractor
+        data = MemoryExtractor.extract_session_memory(session_id)
+        return data
+    except Exception as e:
+        print(f"Error fetching memory matrix: {e}")
+        raise HTTPException(status_code=500, detail=f"Memory Matrix Error: {str(e)}")
+
 @web_app.get("/api/sessions")
 async def list_sessions_endpoint():
     try:

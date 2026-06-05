@@ -25,6 +25,20 @@ let sessionLabel = null;
 let newTopicBtn = null;
 let topicsList = null;
 let quickPromptBtns = [];
+let openMemoryBtn = null;
+let closeMemoryBtn = null;
+let memoryModal = null;
+let memoryCanvas = null;
+let memoryCtx = null;
+let isMemoryModalOpen = false;
+
+// Physics Graph State
+let graphNodes = [];
+let graphLinks = [];
+let selectedNode = null;
+let hoveredNode = null;
+let draggedNode = null;
+let simulationId = null;
 
 // --- Bongo Audio Stub (preserves safe chat triggers) ---
 function playBongoSound(pitchType) {}
@@ -433,6 +447,14 @@ function initApp() {
     newTopicBtn = document.getElementById("newTopicBtn");
     topicsList = document.getElementById("topicsList");
     quickPromptBtns = document.querySelectorAll(".prompt-btn");
+    openMemoryBtn = document.getElementById("openMemoryBtn");
+    closeMemoryBtn = document.getElementById("closeMemoryBtn");
+    memoryModal = document.getElementById("memoryModal");
+    memoryCanvas = document.getElementById("memoryCanvas");
+    
+    if (memoryCanvas) {
+        memoryCtx = memoryCanvas.getContext("2d");
+    }
 
     if (sessionLabel) {
         sessionLabel.textContent = `Session: ${sessionId.substring(16, 22).toUpperCase()}`;
@@ -496,12 +518,384 @@ function initApp() {
         });
     }
 
+    // Memory Matrix Button triggers
+    if (openMemoryBtn) {
+        openMemoryBtn.addEventListener("click", openMemoryMatrix);
+    }
+    if (closeMemoryBtn) {
+        closeMemoryBtn.addEventListener("click", closeMemoryMatrix);
+    }
+    if (memoryModal) {
+        memoryModal.addEventListener("click", (e) => {
+            if (e.target === memoryModal) closeMemoryMatrix();
+        });
+    }
+
+    window.addEventListener("resize", () => {
+        if (isMemoryModalOpen) resizeMemoryCanvas();
+    });
+
     // Start background canvas
     initQuantumCanvas();
 
     // Load initial messages and sessions
     loadChatHistory();
     loadSessions();
+}
+
+// --- Quantum Memory Matrix Logic & Physics Engine ---
+
+async function openMemoryMatrix() {
+    if (!memoryModal) return;
+    memoryModal.style.display = "flex";
+    isMemoryModalOpen = true;
+    
+    // Clear details
+    const detailContainer = document.getElementById("conceptDetailContainer");
+    if (detailContainer) {
+        detailContainer.innerHTML = `<div class="placeholder-text">Click a concept node in the network to inspect memory snippets and recall the dialogue.</div>`;
+    }
+    
+    try {
+        const response = await fetch(`/api/memory-matrix/${sessionId}`);
+        if (!response.ok) throw new Error("Could not fetch memory matrix");
+        const data = await response.json();
+        
+        renderMilestones(data.milestones || []);
+        setupGraphPhysics(data.nodes || [], data.links || []);
+    } catch (e) {
+        console.error("Error loading memory matrix:", e);
+    }
+}
+
+function closeMemoryMatrix() {
+    if (!memoryModal) return;
+    memoryModal.style.display = "none";
+    isMemoryModalOpen = false;
+    
+    if (simulationId) {
+        cancelAnimationFrame(simulationId);
+        simulationId = null;
+    }
+}
+
+function renderMilestones(milestones) {
+    const timeline = document.getElementById("milestonesTimeline");
+    if (!timeline) return;
+    timeline.innerHTML = "";
+    
+    if (milestones.length === 0) {
+        timeline.innerHTML = `<div class="placeholder-text">Start discussing topics to map milestones.</div>`;
+        return;
+    }
+    
+    milestones.forEach(m => {
+        const item = document.createElement("div");
+        item.className = "milestone-item";
+        item.innerHTML = `
+            <div class="milestone-dot"></div>
+            <div class="milestone-time">${m.timestamp}</div>
+            <div class="milestone-title">${m.concept}</div>
+            <div class="milestone-desc">${m.text}</div>
+        `;
+        timeline.appendChild(item);
+    });
+}
+
+function setupGraphPhysics(nodes, links) {
+    if (!memoryCanvas) return;
+    
+    if (simulationId) cancelAnimationFrame(simulationId);
+    
+    resizeMemoryCanvas();
+    
+    const width = memoryCanvas.width;
+    const height = memoryCanvas.height;
+    
+    graphNodes = nodes.map((n, i) => {
+        const angle = (i / nodes.length) * Math.PI * 2;
+        const radius = Math.min(width, height) * 0.22;
+        return {
+            ...n,
+            x: width / 2 + Math.cos(angle) * radius + (Math.random() - 0.5) * 20,
+            y: height / 2 + Math.sin(angle) * radius + (Math.random() - 0.5) * 20,
+            vx: 0,
+            vy: 0,
+            radius: Math.max(12, Math.min(32, 12 + (n.weight * 3)))
+        };
+    });
+    
+    graphLinks = links.map(l => {
+        const sourceNode = graphNodes.find(n => n.id === l.source);
+        const targetNode = graphNodes.find(n => n.id === l.target);
+        return {
+            ...l,
+            sourceNode,
+            targetNode,
+            pulses: [0.0, 0.33, 0.66]
+        };
+    }).filter(l => l.sourceNode && l.targetNode);
+    
+    memoryCanvas.onmousedown = onCanvasMouseDown;
+    memoryCanvas.onmousemove = onCanvasMouseMove;
+    window.onmouseup = onCanvasMouseUp;
+    
+    selectedNode = null;
+    hoveredNode = null;
+    draggedNode = null;
+    simulationId = requestAnimationFrame(updateGraphPhysics);
+}
+
+function resizeMemoryCanvas() {
+    if (!memoryCanvas) return;
+    const rect = memoryCanvas.parentNode.getBoundingClientRect();
+    memoryCanvas.width = rect.width || 600;
+    memoryCanvas.height = rect.height || 500;
+}
+
+function updateGraphPhysics() {
+    if (!isMemoryModalOpen || !memoryCtx) return;
+    
+    const width = memoryCanvas.width;
+    const height = memoryCanvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // Repulsion
+    const kRepulsion = 1600;
+    for (let i = 0; i < graphNodes.length; i++) {
+        const n1 = graphNodes[i];
+        for (let j = i + 1; j < graphNodes.length; j++) {
+            const n2 = graphNodes[j];
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const distSq = dx * dx + dy * dy + 0.1;
+            const dist = Math.sqrt(distSq);
+            
+            const minAllowedDist = n1.radius + n2.radius + 35;
+            let force = kRepulsion / distSq;
+            if (dist < minAllowedDist) {
+                force = (kRepulsion * 2.5) / distSq;
+            }
+            
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            if (n1 !== draggedNode) { n1.vx -= fx; n1.vy -= fy; }
+            if (n2 !== draggedNode) { n2.vx += fx; n2.vy += fy; }
+        }
+    }
+    
+    // Attraction
+    const kAttraction = 0.04;
+    const restLength = 100;
+    graphLinks.forEach(l => {
+        const n1 = l.sourceNode;
+        const n2 = l.targetNode;
+        const dx = n2.x - n1.x;
+        const dy = n2.y - n1.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) + 0.1;
+        const displacement = dist - restLength;
+        const force = kAttraction * displacement;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        
+        if (n1 !== draggedNode) { n1.vx += fx; n1.vy += fy; }
+        if (n2 !== draggedNode) { n2.vx -= fx; n2.vy -= fy; }
+    });
+    
+    // Gravity and Friction
+    const kGravity = 0.015;
+    graphNodes.forEach(n => {
+        if (n === draggedNode) return;
+        
+        n.vx += (centerX - n.x) * kGravity;
+        n.vy += (centerY - n.y) * kGravity;
+        
+        n.vx *= 0.8;
+        n.vy *= 0.8;
+        
+        n.x += n.vx;
+        n.y += n.vy;
+        
+        const pad = n.radius + 10;
+        if (n.x < pad) n.x = pad;
+        if (n.x > width - pad) n.x = width - pad;
+        if (n.y < pad) n.y = pad;
+        if (n.y > height - pad) n.y = height - pad;
+    });
+    
+    drawGraph(width, height);
+    
+    simulationId = requestAnimationFrame(updateGraphPhysics);
+}
+
+function drawGraph(width, height) {
+    memoryCtx.clearRect(0, 0, width, height);
+    
+    // Links & pulses
+    graphLinks.forEach(l => {
+        const isSelectedLink = selectedNode && (l.sourceNode === selectedNode || l.targetNode === selectedNode);
+        
+        memoryCtx.beginPath();
+        memoryCtx.moveTo(l.sourceNode.x, l.sourceNode.y);
+        memoryCtx.lineTo(l.targetNode.x, l.targetNode.y);
+        
+        if (isSelectedLink) {
+            memoryCtx.strokeStyle = "rgba(255, 183, 3, 0.45)";
+            memoryCtx.lineWidth = 2.0;
+        } else {
+            memoryCtx.strokeStyle = "rgba(33, 158, 188, 0.18)";
+            memoryCtx.lineWidth = 1.25;
+        }
+        memoryCtx.stroke();
+        
+        l.pulses.forEach((p, idx) => {
+            l.pulses[idx] = (p + 0.005) % 1.0;
+            const px = l.sourceNode.x + (l.targetNode.x - l.sourceNode.x) * l.pulses[idx];
+            const py = l.sourceNode.y + (l.targetNode.y - l.sourceNode.y) * l.pulses[idx];
+            
+            memoryCtx.beginPath();
+            memoryCtx.arc(px, py, 2.5, 0, Math.PI * 2);
+            memoryCtx.fillStyle = isSelectedLink ? "rgba(255, 183, 3, 0.85)" : "rgba(142, 202, 230, 0.65)";
+            memoryCtx.fill();
+        });
+    });
+    
+    // Nodes
+    graphNodes.forEach(n => {
+        const isSelected = selectedNode === n;
+        const isHovered = hoveredNode === n;
+        
+        if (isSelected || isHovered) {
+            const glowSize = n.radius * 1.5;
+            const grad = memoryCtx.createRadialGradient(n.x, n.y, n.radius * 0.7, n.x, n.y, glowSize);
+            const colorGlow = isSelected ? "rgba(255, 183, 3, 0.2)" : "rgba(33, 158, 188, 0.15)";
+            grad.addColorStop(0, colorGlow);
+            grad.addColorStop(1, "rgba(2, 48, 71, 0)");
+            
+            memoryCtx.beginPath();
+            memoryCtx.arc(n.x, n.y, glowSize, 0, Math.PI * 2);
+            memoryCtx.fillStyle = grad;
+            memoryCtx.fill();
+        }
+        
+        memoryCtx.beginPath();
+        memoryCtx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+        
+        let nodeColor = "rgba(33, 158, 188, 0.7)";
+        let nodeBorderColor = "#219ebc";
+        
+        if (n.category === "dynamic") {
+            nodeColor = "rgba(142, 202, 230, 0.75)";
+            nodeBorderColor = "#8ecae6";
+        } else if (n.category === "persona") {
+            nodeColor = "rgba(255, 183, 3, 0.8)";
+            nodeBorderColor = "#ffb703";
+        }
+        
+        if (isSelected) {
+            nodeBorderColor = "#ffb703";
+        }
+        
+        memoryCtx.fillStyle = nodeColor;
+        memoryCtx.fill();
+        
+        memoryCtx.strokeStyle = nodeBorderColor;
+        memoryCtx.lineWidth = isSelected ? 3.0 : 1.5;
+        memoryCtx.stroke();
+        
+        memoryCtx.font = `bold ${n.radius * 0.45 + 5}px Outfit, sans-serif`;
+        memoryCtx.textAlign = "center";
+        memoryCtx.textBaseline = "middle";
+        
+        memoryCtx.fillStyle = "rgba(2, 48, 71, 0.9)";
+        memoryCtx.fillText(n.label, n.x + 1, n.y + 1);
+        
+        memoryCtx.fillStyle = isSelected ? "#ffb703" : "#ffffff";
+        memoryCtx.fillText(n.label, n.x, n.y);
+    });
+}
+
+function onCanvasMouseDown(e) {
+    const rect = memoryCanvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    let clickedNode = null;
+    for (let i = graphNodes.length - 1; i >= 0; i--) {
+        const n = graphNodes[i];
+        const dx = n.x - mouseX;
+        const dy = n.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= n.radius) {
+            clickedNode = n;
+            break;
+        }
+    }
+    
+    if (clickedNode) {
+        draggedNode = clickedNode;
+        selectedNode = clickedNode;
+        selectConceptNode(clickedNode);
+    } else {
+        selectedNode = null;
+    }
+}
+
+function onCanvasMouseMove(e) {
+    const rect = memoryCanvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    if (draggedNode) {
+        draggedNode.x = mouseX;
+        draggedNode.y = mouseY;
+        draggedNode.vx = 0;
+        draggedNode.vy = 0;
+        return;
+    }
+    
+    let foundHover = null;
+    for (let i = graphNodes.length - 1; i >= 0; i--) {
+        const n = graphNodes[i];
+        const dx = n.x - mouseX;
+        const dy = n.y - mouseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= n.radius) {
+            foundHover = n;
+            break;
+        }
+    }
+    
+    hoveredNode = foundHover;
+    memoryCanvas.style.cursor = foundHover ? "pointer" : "grab";
+}
+
+function onCanvasMouseUp(e) {
+    draggedNode = null;
+}
+
+function selectConceptNode(node) {
+    const detailContainer = document.getElementById("conceptDetailContainer");
+    if (!detailContainer) return;
+    
+    detailContainer.innerHTML = "";
+    
+    const snippets = node.snippets || [];
+    if (snippets.length === 0) {
+        detailContainer.innerHTML = `<div class="placeholder-text">This concept is active in your dialogue matrix, but no direct quotes are stored yet. Prompt Feynman on it!</div>`;
+        return;
+    }
+    
+    snippets.forEach(s => {
+        const bubble = document.createElement("div");
+        bubble.className = `recall-bubble ${s.sender === 'human' ? 'human' : 'feynman'}`;
+        bubble.innerHTML = `
+            <div class="recall-sender">${s.sender === 'human' ? 'You Asked' : 'Dr. Feynman Recalled'}</div>
+            <div class="recall-text">${compileMarkdown(s.text)}</div>
+        `;
+        detailContainer.appendChild(bubble);
+    });
 }
 
 // --- Page Initialization Handler ---
