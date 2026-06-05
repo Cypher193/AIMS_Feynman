@@ -19,7 +19,7 @@ The application is designed to be lightweight, zero-dependency on the frontend, 
     *   *Math Typesetting:* MathJax v3 CDN with dynamic typeset triggers.
 *   **Backend Server:** FastAPI (Python 3.11/3.12) running under Uvicorn.
 *   **AI & RAG Pipeline:** LangChain (combining retrieval chains with SQL database persistence) and Google Gemini API (`gemini-2.5-flash` LLM, `text-embedding-004` embedding model).
-*   **Database & Persistence:** SQLite for stateful dialogue memory and Chroma DB as the dense vector index.
+*   **Database & Persistence:** SQLite for local stateful dialogue memory and Chroma DB as the dense vector index.
 
 ---
 
@@ -81,7 +81,24 @@ Accessing `localStorage` throws a fatal `SecurityError` in incognito tabs or ifr
 
 ---
 
-## 5. Step-by-Step Prompt Data Flow Example
+## 5. Temporal Persona Alignment (Pre-1988 Boundary)
+To ensure the digital twin behaves authentically as Richard Feynman when he was alive, the architecture implements strict temporal boundaries. Feynman passed away on February 15, 1988. Allowing the agent to cite papers, discuss historical events, or reference technologies from after his death would break the realism of the persona. We prevent this using three primary methods:
+1.  **Chronological RAG Filter:** The raw vector databases (Chroma and BM25 index) are strictly populated using texts, lecture files, transcripts, and notes written or recorded by Feynman during his lifetime. The document index contains zero references to post-1988 research, avoiding the presence of anachronistic citations in the RAG contexts.
+2.  **System Prompt Guardrails:** The system prompt instructs the LLM that it is not an AI, but Dr. Feynman himself. The LLM is explicitly forbidden from citing post-1988 papers or referring to discoveries that occurred after his lifetime. If asked to write citations, it selects papers from his lifetime (e.g. his 1961 path-integral works or his 1985 nanotech outlines).
+3.  **Anachronism Mitigation Strategy:** When users prompt Feynman with modern concepts (such as modern transformer models or deep learning architectures), the agent is instructed to respond with his characteristic intellectual curiosity. He approaches them as hypothetical future predictions or abstract first-principles computational architectures, keeping character while admitting the concepts are "from after his time."
+
+---
+
+## 6. Hallucination Prevention & Mitigation
+Hallucination mitigation is critical in educational contexts. We employ four layers of safety checks to ensure the digital twin remains grounded in authentic source materials:
+1.  **Strict Grounding Constraints:** The prompt template strictly binds the model's responses to the retrieved hybrid RAG context segments using a rigid prompt clause. The model is penalized for bringing in external knowledge bases when answering factual physics questions.
+2.  **Intellectual Honesty Injection:** Feynman's own philosophy of scientific honesty is built into the system prompt. The model is instructed: *"If you don't know something, or if a premise is flawed, bluntly admit it. 'I don't know, let's figure it out' is your default stance."* This redirects potential hallucinations into honest admissions.
+3.  **Retrieved Context Denseness:** By merging vector embeddings and keyword indexes (BM25), the retrieval accuracy rises, offering a richer context segment. This reduces the need for the model to fill in details from its own parametric memory.
+4.  **Temperature Controls:** The temperature parameter is locked at 0.7. This allows enough flexibility for storytelling, jokes, and anecdotes (crucial to Feynman's persona) while keeping his scientific explanations grounded and deterministic.
+
+---
+
+## 7. Step-by-Step Prompt Data Flow Example
 
 To illustrate the operations of the digital twin, here is the detailed sequence showing how a prompt (e.g., **"What is a photon?"**) propagates through the stack:
 
@@ -114,7 +131,7 @@ To illustrate the operations of the digital twin, here is the detailed sequence 
 
 ---
 
-## 6. Directory Mapping & Repository Policies
+## 8. Directory Mapping & Repository Policies
 
 *   **`static/`**: Clean separation of frontend scripts. Contains `index.html` (structure), `script.js` (UI logic, canvas engines, animations), and `style.css` (styling variables).
 *   **`feynman_memory.db`**: Local SQLite database storing conversational session history.
