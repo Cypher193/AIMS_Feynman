@@ -98,7 +98,18 @@ Hallucination mitigation is critical in educational contexts. We employ four lay
 
 ---
 
-## 7. Step-by-Step Prompt Data Flow Example
+## 7. Database & Memory Management
+
+To handle dialogue persistence, fast semantic retrieval, and real-time context management, the system implements a multi-tier database and memory management architecture:
+
+1.  **SQLite Session Grouping:** Dialogue sessions are partitioned in a local SQLite database (`feynman_memory.db`) inside the `message_store` table using connection pooling. Each conversation is grouped by a unique `session_id`, ensuring independent, secure, and logically segregated history tracking per topic.
+2.  **LangChain History Caching:** The agent utilizes `RunnableWithMessageHistory` to dynamically cache chat messages in-memory during active sessions. This caching reduces the overhead of constant database disk I/O, feeding rolling conversational windows directly to the LLM context chain.
+3.  **Local Chroma Index Mapping:** The pre-compiled knowledge base embeddings are mapped to a local disk-based Chroma DB directory (`./feynman_twin_db/`). This persistent index speeds up dense retrieval by serving pre-computed document vector representations, completely bypassing the need for redundant runtime embedding generation.
+4.  **Topic Garbage Collection:** To prevent database bloat, the system features dynamic garbage collection. When a user deletes a session or topic from the UI, a DELETE query is executed on the SQLite `message_store` (`DELETE FROM message_store WHERE session_id = ?`), immediately purging metadata and reclaiming storage space.
+
+---
+
+## 8. Step-by-Step Prompt Data Flow Example
 
 To illustrate the operations of the digital twin, here is the detailed sequence showing how a prompt (e.g., **"What is a photon?"**) propagates through the stack:
 
@@ -131,7 +142,14 @@ To illustrate the operations of the digital twin, here is the detailed sequence 
 
 ---
 
-## 8. Directory Mapping & Repository Policies
+## 9. Resiliency & Client-Side Protections
+
+1.  **Incognito Mode Protection:** Wrapped all `localStorage` interactions in try-catch blocks. If `localStorage` throws a `SecurityError` due to privacy blocklists in private browsing tabs, the script seamlessly switches to stateful in-memory parameters. This prevents the application from crashing and guarantees interactive elements remain responsive.
+2.  **ReadyState Checks:** Uses `document.readyState` check to instantly attach event listeners. If the DOM finishes loading before JavaScript executes, script listeners attach immediately rather than waiting for `DOMContentLoaded` events that have already been fired.
+
+---
+
+## 10. Directory Mapping & Repository Policies
 
 *   **`static/`**: Clean separation of frontend scripts. Contains `index.html` (structure), `script.js` (UI logic, canvas engines, animations), and `style.css` (styling variables).
 *   **`feynman_memory.db`**: Local SQLite database storing conversational session history.
