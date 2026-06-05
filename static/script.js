@@ -452,6 +452,13 @@ function initApp() {
     memoryModal = document.getElementById("memoryModal");
     memoryCanvas = document.getElementById("memoryCanvas");
     
+    console.log("[MemoryMatrix] Resolved elements:", {
+        openMemoryBtn: !!openMemoryBtn,
+        closeMemoryBtn: !!closeMemoryBtn,
+        memoryModal: !!memoryModal,
+        memoryCanvas: !!memoryCanvas
+    });
+    
     if (memoryCanvas) {
         memoryCtx = memoryCanvas.getContext("2d");
     }
@@ -546,7 +553,12 @@ function initApp() {
 // --- Quantum Memory Matrix Logic & Physics Engine ---
 
 async function openMemoryMatrix() {
-    if (!memoryModal) return;
+    console.log("[MemoryMatrix] Button click detected. Opening modal.");
+    if (!memoryModal) {
+        console.error("[MemoryMatrix] Aborted: memoryModal element is null!");
+        return;
+    }
+    
     memoryModal.style.display = "flex";
     isMemoryModalOpen = true;
     
@@ -557,14 +569,17 @@ async function openMemoryMatrix() {
     }
     
     try {
-        const response = await fetch(`/api/memory-matrix/${sessionId}`);
-        if (!response.ok) throw new Error("Could not fetch memory matrix");
+        const url = `/api/memory-matrix/${sessionId}`;
+        console.log(`[MemoryMatrix] Fetching memory matrix data from: ${url}`);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
+        console.log("[MemoryMatrix] Successfully loaded matrix data:", data);
         
         renderMilestones(data.milestones || []);
         setupGraphPhysics(data.nodes || [], data.links || []);
     } catch (e) {
-        console.error("Error loading memory matrix:", e);
+        console.error("[MemoryMatrix] Error loading memory matrix:", e);
     }
 }
 
